@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdbool.h>
 #include <string.h>
+#include <time.h>
 
 #define NAME_MAX_SIZE (128)
 #define EMAIL_MAX_SIZE (128)
@@ -11,11 +12,28 @@
 #define NR_OF_MOCK_CONTACTS (10)
 
 
+#define DATETIME_PARCEL_SIZE_BITS (8)
+#define DATETIME_PARCEL_MASK ((1 << DATETIME_PARCEL_SIZE_BITS) -1) // 0xFF
+#define DATETIME_DAY_POSITION_BIT (0)
+#define DATETIME_MONTH_POSITION_BIT (DATETIME_DAY_POSITION_BIT + DATETIME_PARCEL_SIZE_BITS)
+#define DATETIME_YEAR_POSITION_BIT (DATETIME_MONTH_POSITION_BIT + DATETIME_PARCEL_SIZE_BITS)
+
+#define DATETIME_MINUTE_POSITION_BIT (0)
+#define DATETIME_HOUR_POSITION_BIT (DATETIME_MINUTE_POSITION_BIT + DATETIME_PARCEL_SIZE_BITS)
+
+
+typedef struct m_datetime
+{
+	unsigned int date;
+	unsigned short time;
+}DateTime;
+
 typedef struct m_contact
 {
 	char name[NAME_MAX_SIZE];
 	char email[EMAIL_MAX_SIZE];
 	unsigned int phone;
+	DateTime created;
 }Contact;
 
 
@@ -30,7 +48,18 @@ int getIntFromConsole();
 int fillContactsWithMockData(Contact contacts[], int maxContactSize);
 bool deleteContact(Contact contacts[], int maxContactSize);
 bool deleteCascadeContact(Contact contacts[], int maxContactSize);
+DateTime getCurrentDateTime();
+void datetimeToString(DateTime dt, char buffer[]);
 
+void testdatetime()
+{
+	char buffer[1234];
+	DateTime dt = getCurrentDateTime();
+	datetimeToString(dt,buffer);
+	
+	printf("%s\n", buffer);
+	
+}
 
 int main()
 {
@@ -153,6 +182,7 @@ Contact readContact()
 	printf("[Add Contact] Phone? ");
 	c.phone = getIntFromConsole();
 	
+	c.created = getCurrentDateTime();
 	return c;
 }
 
@@ -187,8 +217,13 @@ void printAllContacts(Contact contacts[], int nrOfContacts, bool showId)
 
 void printContact(Contact c)
 {
-	printf("Name: %s\t\t\tEmail: %s\t\t\tPhone:%d\n", c.name, c.email, c.phone);
+	char buffer[BUFFER_SIZE];
+	datetimeToString(c.created, buffer);
+	printf("Name: %s\t\tEmail: %s\t\tPhone:%d\t\tCreated: %s\n", c.name, c.email, c.phone, buffer);
+	//printf("Name: %s\t\tEmail: %s\t\tPhone:%d\t\tCreated: %d\n", c.name, c.email, c.phone, c.created.date);
+
 }
+
 
 void showFindMenu(Contact contacts[], int nrOfContacts)
 {
@@ -305,6 +340,8 @@ int fillContactsWithMockData(Contact contacts[], int maxContactSize)
 		strcpy(contacts[i].email, buffer);
 		
 		contacts[i].phone = i+1000;
+		
+		contacts[i].created = getCurrentDateTime();
 	}
 	
 	return NR_OF_MOCK_CONTACTS;
@@ -353,4 +390,52 @@ bool deleteCascadeContact(Contact contacts[], int totalContacts)
 	}
 	
 	return true;
+}
+
+DateTime getCurrentDateTime()
+{
+	time_t t = time(NULL);
+	struct tm dateNow = *localtime(&t);
+	
+	/**
+	int    tm_sec   seconds [0,61]
+	int    tm_min   minutes [0,59]
+	int    tm_hour  hour [0,23]
+	int    tm_mday  day of month [1,31]
+	int    tm_mon   month of year [0,11]
+	int    tm_year  years since 1900
+	int    tm_wday  day of week [0,6] (Sunday = 0)
+	int    tm_yday  day of year [0,365]
+	int    tm_isdst daylight savings flag
+	* time.h
+	 */
+	
+	int year = dateNow.tm_year % 100;
+	int month = dateNow.tm_mon + 1;
+	int day = dateNow.tm_mday;
+	int hour = dateNow.tm_hour;
+	int minutes = dateNow.tm_min;
+	
+	DateTime dt;
+	
+	dt.date = (day & DATETIME_PARCEL_MASK) << DATETIME_DAY_POSITION_BIT |
+			  (month & DATETIME_PARCEL_MASK) << DATETIME_MONTH_POSITION_BIT |
+			  (year & DATETIME_PARCEL_MASK) << DATETIME_YEAR_POSITION_BIT 
+			  ;
+	
+	dt.time = (hour & DATETIME_PARCEL_MASK) << DATETIME_HOUR_POSITION_BIT |
+			  (minutes & DATETIME_PARCEL_MASK) << DATETIME_MINUTE_POSITION_BIT;
+	
+	return dt;
+}
+
+void datetimeToString(DateTime dt, char buffer[])
+{
+	int year = (dt.date >> DATETIME_YEAR_POSITION_BIT) & DATETIME_PARCEL_MASK;
+	int month = (dt.date >> DATETIME_MONTH_POSITION_BIT) & DATETIME_PARCEL_MASK;
+	int day =(dt.date >> DATETIME_DAY_POSITION_BIT) & DATETIME_PARCEL_MASK;
+	int hour = (dt.time >> DATETIME_HOUR_POSITION_BIT) & DATETIME_PARCEL_MASK;
+	int minutes = (dt.time >> DATETIME_MINUTE_POSITION_BIT) & DATETIME_PARCEL_MASK;
+	
+	sprintf(buffer, "%02d/%02d/%02d - %02d:%02d",day,month,year,hour,minutes);
 }
