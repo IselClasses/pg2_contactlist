@@ -50,6 +50,7 @@ bool deleteContact(Contact contacts[], int maxContactSize);
 bool deleteCascadeContact(Contact contacts[], int maxContactSize);
 DateTime getCurrentDateTime();
 void datetimeToString(DateTime dt, char buffer[]);
+void saveContacts(Contact contacts[], int nrOfContacts);
 
 void testdatetime()
 {
@@ -75,6 +76,8 @@ int main()
 		printf("f - find contact\n");
 		printf("d - delete contact\n");
 		printf("r - delete contact cascade\n");
+		printf("l - load contacts\n");
+		printf("w - save contacts\n");
 		printf("q - quit\n");
 		
 		printf("\n> ");
@@ -91,6 +94,11 @@ int main()
 				
 			case 'a':
 			{
+				if(nrOfContacts == CONTACT_MAX_SIZE)
+				{
+					printf("Contact book full\n");
+					break;
+				}
 				Contact c = readContact();
 				contacts[nrOfContacts] = c;
 				nrOfContacts += 1;
@@ -113,7 +121,21 @@ int main()
 				if(deleteCascadeContact(contacts, nrOfContacts))
 					nrOfContacts--;
 				break;
+				
+			case 'l':
+				if(nrOfContacts >= CONTACT_MAX_SIZE)
+				{
+					printf("Contact book full\n");
+					break;
+				}
 			
+				int contactsAdded = loadContacts(contacts, nrOfContacts, CONTACT_MAX_SIZE);
+				nrOfContacts += contactsAdded;
+				break;
+				
+			case 'w':
+				saveContacts(contacts, nrOfContacts);
+				break;
 			default:
 				printf("Invalid input\n\n");
 				break;
@@ -438,4 +460,107 @@ void datetimeToString(DateTime dt, char buffer[])
 	int minutes = (dt.time >> DATETIME_MINUTE_POSITION_BIT) & DATETIME_PARCEL_MASK;
 	
 	sprintf(buffer, "%02d/%02d/%02d - %02d:%02d",day,month,year,hour,minutes);
+}
+
+void writeContactToFile(Contact c, FILE* fp)
+{
+	fprintf(fp, "%s,%s,%d", c.name, c.email, c.phone);
+	fprintf(fp, ",%d,%d", c.created.date, c.created.time);
+	
+	fputc('\n', fp);
+}
+
+
+void saveContacts(Contact contacts[], int nrOfContacts)
+{
+	char fileName[BUFFER_SIZE];
+	
+	printf("[Save Contacts] File? ");
+	getLine(fileName, BUFFER_SIZE);
+	
+	FILE* fp = fopen(fileName, "w");
+	
+	if(fp == NULL)
+	{
+		printf("Error opening %s\n", fileName);
+		return;
+	}
+	
+	for(int i = 0; i < nrOfContacts; ++i)
+	{
+		writeContactToFile(contacts[i], fp);
+	}
+	
+	fclose(fp);
+	
+	printf("Written <<%d>> contacts to <<%s>>\n", nrOfContacts, fileName);
+}
+
+/*
+	Reads characters from line until it reaches a comma (,) and places
+	the read chars in buffer. The function returns -1 if the end of string 
+	is reached or the index of the founded comma +1.
+	The buffer value on return should be a string (should have the terminator character)
+e.g name,email,phone,date,time
+* 	xxx,yyy,1234,12345,12345
+
+ */
+int extractFromLine(char buffer[], int startIdx, char line[])
+{
+
+}
+
+Contact readContactFromString(char line[])
+{
+	Contact c;
+	char buffer[BUFFER_SIZE];
+	
+	int idx = extractFromLine(c.name, 0, line);
+	idx = extractFromLine(c.email, idx, line);
+	
+	idx = extractFromLine(buffer, idx, line);
+	sscanf(buffer, "%d", &c.phone);
+	
+	
+	idx = extractFromLine(buffer, idx, line);
+	sscanf(buffer, "%d", &c.created.date);
+	
+	idx = extractFromLine(buffer, idx, line);
+	sscanf(buffer, "%hd", &c.created.time);
+	
+	return c;
+	
+}
+
+int loadContacts(Contact contacts[], int nrOfContacts, int maxContacts)
+{
+	char fileName[BUFFER_SIZE];
+	char buffer[BUFFER_SIZE];
+
+	printf("[Load Contacts] File? ");
+	getLine(fileName, BUFFER_SIZE);
+	
+	FILE* fp = fopen(fileName, "r");
+	
+	if(fp == NULL)
+	{
+		printf("Error opening %s\n", fileName);
+		return;
+	}
+	
+	int initialContacts = nrOfContacts;
+	
+	while(nrOfContacts < maxContacts && 		//space for a new contact
+		  fgets(buffer, BUFFER_SIZE, fp) != NULL && // read a line from the file
+		  buffer[0] != 0) //line is not empty
+	{
+		Contact c = readContactFromString(buffer);
+		contacts[nrOfContacts] = c;
+		nrOfContacts++;
+	}
+	
+	fclose(fp);
+	
+	return nrOfContacts - initialContacts;
+	
 }
