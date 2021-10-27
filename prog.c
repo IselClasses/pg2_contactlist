@@ -3,6 +3,9 @@
 #include <string.h>
 #include <time.h>
 
+#include "datetime.h"
+
+
 #define NAME_MAX_SIZE (128)
 #define EMAIL_MAX_SIZE (128)
 #define BUFFER_SIZE (512)
@@ -12,21 +15,6 @@
 #define NR_OF_MOCK_CONTACTS (10)
 
 
-#define DATETIME_PARCEL_SIZE_BITS (8)
-#define DATETIME_PARCEL_MASK ((1 << DATETIME_PARCEL_SIZE_BITS) -1) // 0xFF
-#define DATETIME_DAY_POSITION_BIT (0)
-#define DATETIME_MONTH_POSITION_BIT (DATETIME_DAY_POSITION_BIT + DATETIME_PARCEL_SIZE_BITS)
-#define DATETIME_YEAR_POSITION_BIT (DATETIME_MONTH_POSITION_BIT + DATETIME_PARCEL_SIZE_BITS)
-
-#define DATETIME_MINUTE_POSITION_BIT (0)
-#define DATETIME_HOUR_POSITION_BIT (DATETIME_MINUTE_POSITION_BIT + DATETIME_PARCEL_SIZE_BITS)
-
-
-typedef struct m_datetime
-{
-	unsigned int date;
-	unsigned short time;
-}DateTime;
 
 typedef struct m_contact
 {
@@ -35,6 +23,7 @@ typedef struct m_contact
 	unsigned int phone;
 	DateTime created;
 }Contact;
+
 
 
 Contact readContact();
@@ -48,10 +37,11 @@ int getIntFromConsole();
 int fillContactsWithMockData(Contact contacts[], int maxContactSize);
 bool deleteContact(Contact contacts[], int maxContactSize);
 bool deleteCascadeContact(Contact contacts[], int maxContactSize);
-DateTime getCurrentDateTime();
-void datetimeToString(DateTime dt, char buffer[]);
-void saveContacts(Contact contacts[], int nrOfContacts);
 
+void saveContacts(Contact contacts[], int nrOfContacts);
+int loadContacts(Contact contacts[], int nrOfContacts, int maxContacts);
+
+Contact readContactFromString(char line[]);
 void testdatetime()
 {
 	char buffer[1234];
@@ -64,6 +54,7 @@ void testdatetime()
 
 int main()
 {
+	
 	Contact contacts[CONTACT_MAX_SIZE];
 	int nrOfContacts = 0;
 	
@@ -414,53 +405,7 @@ bool deleteCascadeContact(Contact contacts[], int totalContacts)
 	return true;
 }
 
-DateTime getCurrentDateTime()
-{
-	time_t t = time(NULL);
-	struct tm dateNow = *localtime(&t);
-	
-	/**
-	int    tm_sec   seconds [0,61]
-	int    tm_min   minutes [0,59]
-	int    tm_hour  hour [0,23]
-	int    tm_mday  day of month [1,31]
-	int    tm_mon   month of year [0,11]
-	int    tm_year  years since 1900
-	int    tm_wday  day of week [0,6] (Sunday = 0)
-	int    tm_yday  day of year [0,365]
-	int    tm_isdst daylight savings flag
-	* time.h
-	 */
-	
-	int year = dateNow.tm_year % 100;
-	int month = dateNow.tm_mon + 1;
-	int day = dateNow.tm_mday;
-	int hour = dateNow.tm_hour;
-	int minutes = dateNow.tm_min;
-	
-	DateTime dt;
-	
-	dt.date = (day & DATETIME_PARCEL_MASK) << DATETIME_DAY_POSITION_BIT |
-			  (month & DATETIME_PARCEL_MASK) << DATETIME_MONTH_POSITION_BIT |
-			  (year & DATETIME_PARCEL_MASK) << DATETIME_YEAR_POSITION_BIT 
-			  ;
-	
-	dt.time = (hour & DATETIME_PARCEL_MASK) << DATETIME_HOUR_POSITION_BIT |
-			  (minutes & DATETIME_PARCEL_MASK) << DATETIME_MINUTE_POSITION_BIT;
-	
-	return dt;
-}
 
-void datetimeToString(DateTime dt, char buffer[])
-{
-	int year = (dt.date >> DATETIME_YEAR_POSITION_BIT) & DATETIME_PARCEL_MASK;
-	int month = (dt.date >> DATETIME_MONTH_POSITION_BIT) & DATETIME_PARCEL_MASK;
-	int day =(dt.date >> DATETIME_DAY_POSITION_BIT) & DATETIME_PARCEL_MASK;
-	int hour = (dt.time >> DATETIME_HOUR_POSITION_BIT) & DATETIME_PARCEL_MASK;
-	int minutes = (dt.time >> DATETIME_MINUTE_POSITION_BIT) & DATETIME_PARCEL_MASK;
-	
-	sprintf(buffer, "%02d/%02d/%02d - %02d:%02d",day,month,year,hour,minutes);
-}
 
 void writeContactToFile(Contact c, FILE* fp)
 {
@@ -507,7 +452,21 @@ e.g name,email,phone,date,time
  */
 int extractFromLine(char buffer[], int startIdx, char line[])
 {
-
+	int j = 0;
+	int i = startIdx;
+	for(;line[i] != '\0' && line[i] != ',' && line[i] != '\n';++i, j++)
+	{
+		buffer[j] = line[i];
+	}
+	
+	buffer[j] = 0;
+	
+	//return (line[i] || line[i] == '\n') ? -1 : i+1;
+	
+	if(line[i] == 0 || line[i] == '\n')
+		return -1;
+		
+	return i + 1;
 }
 
 Contact readContactFromString(char line[])
@@ -545,7 +504,7 @@ int loadContacts(Contact contacts[], int nrOfContacts, int maxContacts)
 	if(fp == NULL)
 	{
 		printf("Error opening %s\n", fileName);
-		return;
+		return 0;
 	}
 	
 	int initialContacts = nrOfContacts;
@@ -560,6 +519,8 @@ int loadContacts(Contact contacts[], int nrOfContacts, int maxContacts)
 	}
 	
 	fclose(fp);
+	
+	printf("Read <<%d>> contacts\n", nrOfContacts - initialContacts);
 	
 	return nrOfContacts - initialContacts;
 	
