@@ -1,45 +1,31 @@
 #include <stdio.h>
 #include <stdbool.h>
 #include <string.h>
-#include <time.h>
 
 #include "datetime.h"
+#include "contacts.h"
+#include "consolehelpers.h"
 
-
-#define NAME_MAX_SIZE (128)
-#define EMAIL_MAX_SIZE (128)
 #define BUFFER_SIZE (512)
-#define CONTACT_MAX_SIZE (100)
 #define INVALID_OPTION (-1)
 
 #define NR_OF_MOCK_CONTACTS (10)
 
 
 
-typedef struct m_contact
-{
-	char name[NAME_MAX_SIZE];
-	char email[EMAIL_MAX_SIZE];
-	unsigned int phone;
-	DateTime created;
-}Contact;
 
 
 
 Contact readContact();
-void getLine(char buffer[], int bufferSize);
-void mstrcpy(char dst[], char src[]);
-char getMenuOption();
-void printAllContacts(Contact contacts[], int nrOfContacts, bool showId);
+void printAllContacts(bool showId);
 void printContact(Contact c);
-void showFindMenu(Contact contacts[], int nrOfContacts);
-int getIntFromConsole();
-int fillContactsWithMockData(Contact contacts[], int maxContactSize);
-bool deleteContact(Contact contacts[], int maxContactSize);
-bool deleteCascadeContact(Contact contacts[], int maxContactSize);
+void showFindMenu();
+void fillContactsWithMockData();
+bool deleteContact();
+bool deleteCascadeContact();
 
-void saveContacts(Contact contacts[], int nrOfContacts);
-int loadContacts(Contact contacts[], int nrOfContacts, int maxContacts);
+void saveContacts();
+void loadContacts();
 
 Contact readContactFromString(char line[]);
 void testdatetime()
@@ -54,11 +40,7 @@ void testdatetime()
 
 int main()
 {
-	
-	Contact contacts[CONTACT_MAX_SIZE];
-	int nrOfContacts = 0;
-	
-	nrOfContacts = fillContactsWithMockData(contacts, CONTACT_MAX_SIZE);
+	fillContactsWithMockData();
 
 	while(true)
 	{
@@ -85,47 +67,55 @@ int main()
 				
 			case 'a':
 			{
-				if(nrOfContacts == CONTACT_MAX_SIZE)
+				
+				if(canAddContact() == false)
 				{
 					printf("Contact book full\n");
 					break;
 				}
+				
 				Contact c = readContact();
-				contacts[nrOfContacts] = c;
-				nrOfContacts += 1;
+				if(addContact(c))
+					printf("Contact added\n");
+				else
+					printf("Failed to add contact\n");
+				
 				break;
 			}
 			case 's':
-				printAllContacts(contacts, nrOfContacts,false);
+				printAllContacts(false);
 				break;
 			
 			case 'f':
-				showFindMenu(contacts, nrOfContacts);
+				showFindMenu();
 				break;
 				
 			case 'd':
-				if(deleteContact(contacts, nrOfContacts))
-					nrOfContacts--;
+				if(deleteContact())
+					printf("Contact deleted\n");
+				else
+					printf("Error deleting contact \n");
 				break;
 				
 			case 'r':
-				if(deleteCascadeContact(contacts, nrOfContacts))
-					nrOfContacts--;
+				if(deleteCascadeContact())
+					printf("Contact deleted\n");
+				else
+					printf("Error deleting contact \n");
 				break;
 				
 			case 'l':
-				if(nrOfContacts >= CONTACT_MAX_SIZE)
+				if(canAddContact() == false)
 				{
 					printf("Contact book full\n");
 					break;
 				}
 			
-				int contactsAdded = loadContacts(contacts, nrOfContacts, CONTACT_MAX_SIZE);
-				nrOfContacts += contactsAdded;
+				loadContacts();
 				break;
 				
 			case 'w':
-				saveContacts(contacts, nrOfContacts);
+				saveContacts();
 				break;
 			default:
 				printf("Invalid input\n\n");
@@ -139,44 +129,6 @@ int main()
 
 
 
-void getLine(char buffer[], int bufferSize)
-{
-	if(bufferSize == 0)
-		return;
-		
-	int i = 0;
-	do
-	{
-		char c = getchar();
-
-		if(c == '\n')
-			break;
-		
-		buffer[i] = c;
-		i++;
-		
-		if(i == bufferSize)
-		{
-			buffer[bufferSize-1] = 0;
-			printf("Buffer full\n");
-			return;
-		}
-		
-		
-	}while(true);
-	
-	buffer[i] = '\0';
-}
-
-
-void mstrcpy(char dst[], char src[])
-{
-	int i = 0;
-	for(; src[i]; ++i)
-		dst[i] = src[i];
-		
-	dst[i] = 0;
-}
 
 Contact readContact()
 {
@@ -200,31 +152,19 @@ Contact readContact()
 }
 
 
-char getMenuOption()
-{
-	char buffer[BUFFER_SIZE];
-	
-	getLine(buffer, BUFFER_SIZE);
-	
-	if(strlen(buffer) == 1)
-		return buffer[0];
-		
-	return INVALID_OPTION;
-}
-
-
-void printAllContacts(Contact contacts[], int nrOfContacts, bool showId)
+void printAllContacts(bool showId)
 {
 	printf("------------------------------------------------------\n");
 	
-	for(int i = 0; i < nrOfContacts; ++i)
+	int contactSize = getContactsCount();
+	for(int i = 0; i < contactSize; ++i)
 	{
 		if(showId)
 			printf("ID : %d\t\t", i);
 			
-		printContact(contacts[i]);
+		printContact(getContactAt(i));
 	}
-	printf("Contacts Count %d\n", nrOfContacts);
+	printf("Contacts Count %d\n", contactSize);
 	printf("------------------------------------------------------\n");
 }
 
@@ -237,8 +177,7 @@ void printContact(Contact c)
 
 }
 
-
-void showFindMenu(Contact contacts[], int nrOfContacts)
+void showFindMenu()
 {
 	char buffer[BUFFER_SIZE];
 	while(true)
@@ -252,6 +191,9 @@ void showFindMenu(Contact contacts[], int nrOfContacts)
 		printf("----- > ");
 		char option = getMenuOption();
 		
+		
+		int contactSize = getContactsCount();
+		
 		switch(option)
 		{
 			case 'n':
@@ -259,11 +201,13 @@ void showFindMenu(Contact contacts[], int nrOfContacts)
 				printf("----- [Name] ? ");
 				getLine(buffer, BUFFER_SIZE);
 				
-				for(int i = 0; i < nrOfContacts; ++i)
+	
+				for(int i = 0; i < contactSize; ++i)
 				{
-					if(strcmp(contacts[i].name,buffer) == 0)
+					Contact contact = getContactAt(i);
+					if(strcmp(contact.name,buffer) == 0)
 					{
-						printContact(contacts[i]);
+						printContact(contact);
 						return;
 					}
 				}
@@ -274,11 +218,12 @@ void showFindMenu(Contact contacts[], int nrOfContacts)
 				printf("----- [Email] ? ");
 				getLine(buffer, BUFFER_SIZE);
 				
-				for(int i = 0; i < nrOfContacts; ++i)
+				for(int i = 0; i < contactSize; ++i)
 				{
-					if(strcmp(contacts[i].email,buffer) == 0)
+					Contact contact = getContactAt(i);
+					if(strcmp(contact.email,buffer) == 0)
 					{
-						printContact(contacts[i]);
+						printContact(contact);
 						return;
 					}
 				}
@@ -291,11 +236,12 @@ void showFindMenu(Contact contacts[], int nrOfContacts)
 				
 				int phone = getIntFromConsole();
 				
-				for(int i = 0; i < nrOfContacts; ++i)
+				for(int i = 0; i < contactSize; ++i)
 				{
-					if(phone == contacts[i].phone)
+					Contact contact = getContactAt(i);
+					if(phone == contact.phone)
 					{
-						printContact(contacts[i]);
+						printContact(contact);
 						return;
 					}
 				}
@@ -308,13 +254,13 @@ void showFindMenu(Contact contacts[], int nrOfContacts)
 				int i = getIntFromConsole();
 				
 				
-				if(i >= nrOfContacts || i < 0)
+				if(i >= getContactsCount() || i < 0)
 				{
 					printf("Contact doesn't exist\n");
 				}
 				else
 				{
-					printContact(contacts[i]);
+					printContact(getContactAt(i));
 					printf("\n");
 				}
 				return;
@@ -329,41 +275,40 @@ void showFindMenu(Contact contacts[], int nrOfContacts)
 	}
 }
 
-int getIntFromConsole()
-{
-	int val;
-	char buffer[BUFFER_SIZE];
-	scanf("%d",&val);
-	
-	getLine(buffer, BUFFER_SIZE);
-	return val;
-}
 
-int fillContactsWithMockData(Contact contacts[], int maxContactSize)
+void fillContactsWithMockData()
 {
-	char buffer[NR_OF_MOCK_CONTACTS];
+	char buffer[BUFFER_SIZE];
 	
 	for(int i = 0; i < NR_OF_MOCK_CONTACTS; ++i)
 	{
+		Contact c;
 		sprintf(buffer, "contact-%d", i);
-		strcpy(contacts[i].name, buffer);
+		strcpy(c.name, buffer);
 		
 		
 		sprintf(buffer, "email-%d", i);
-		strcpy(contacts[i].email, buffer);
+		strcpy(c.email, buffer);
 		
-		contacts[i].phone = i+1000;
+		c.phone = i+1000;
 		
-		contacts[i].created = getCurrentDateTime();
+		c.created = getCurrentDateTime();
+		
+		if(addContact(c) == false)
+			return;
 	}
 	
-	return NR_OF_MOCK_CONTACTS;
+	
+	
+	
+	
 }
 
 
-bool deleteContact(Contact contacts[], int totalContacts)
+bool deleteContact()
 {
-	printAllContacts(contacts, totalContacts, true);
+	int totalContacts = getContactsCount();
+	printAllContacts( true);
 	
 	printf("[Delete Contact] Id? ");
 	int id = getIntFromConsole();
@@ -374,18 +319,14 @@ bool deleteContact(Contact contacts[], int totalContacts)
 		return false;
 	}
 	
-	Contact lastContact = contacts[totalContacts-1];
-	
-	contacts[id] = lastContact;
-	
-	return true;
+	return deleteContactAtIdx(id);
 }
 
 
-bool deleteCascadeContact(Contact contacts[], int totalContacts)
+bool deleteCascadeContact()
 {
-	//TODO CHANGE ME PLEASEEEEE
-	printAllContacts(contacts, totalContacts, true);
+	int totalContacts = getContactsCount();
+	printAllContacts( true);
 	
 	printf("[Delete Contact] Id? ");
 	int id = getIntFromConsole();
@@ -395,13 +336,8 @@ bool deleteCascadeContact(Contact contacts[], int totalContacts)
 		printf("Invalid id \n\n");
 		return false;
 	}
-	//END TODO
 	
-	for(int i = id; i < totalContacts-1; ++i)
-	{
-		contacts[i] = contacts[i+1];
-	}
-	
+	return deleteContactAtIdxCascade(id);
 	return true;
 }
 
@@ -416,7 +352,7 @@ void writeContactToFile(Contact c, FILE* fp)
 }
 
 
-void saveContacts(Contact contacts[], int nrOfContacts)
+void saveContacts()
 {
 	char fileName[BUFFER_SIZE];
 	
@@ -431,70 +367,19 @@ void saveContacts(Contact contacts[], int nrOfContacts)
 		return;
 	}
 	
-	for(int i = 0; i < nrOfContacts; ++i)
-	{
-		writeContactToFile(contacts[i], fp);
-	}
+	writeContactsToFile(fp);
+	
 	
 	fclose(fp);
 	
-	printf("Written <<%d>> contacts to <<%s>>\n", nrOfContacts, fileName);
+	printf("Written <<%d>> contacts to <<%s>>\n", getContactsCount(), fileName);
 }
 
-/*
-	Reads characters from line until it reaches a comma (,) and places
-	the read chars in buffer. The function returns -1 if the end of string 
-	is reached or the index of the founded comma +1.
-	The buffer value on return should be a string (should have the terminator character)
-e.g name,email,phone,date,time
-* 	xxx,yyy,1234,12345,12345
 
- */
-int extractFromLine(char buffer[], int startIdx, char line[])
-{
-	int j = 0;
-	int i = startIdx;
-	for(;line[i] != '\0' && line[i] != ',' && line[i] != '\n';++i, j++)
-	{
-		buffer[j] = line[i];
-	}
-	
-	buffer[j] = 0;
-	
-	//return (line[i] || line[i] == '\n') ? -1 : i+1;
-	
-	if(line[i] == 0 || line[i] == '\n')
-		return -1;
-		
-	return i + 1;
-}
 
-Contact readContactFromString(char line[])
-{
-	Contact c;
-	char buffer[BUFFER_SIZE];
-	
-	int idx = extractFromLine(c.name, 0, line);
-	idx = extractFromLine(c.email, idx, line);
-	
-	idx = extractFromLine(buffer, idx, line);
-	sscanf(buffer, "%d", &c.phone);
-	
-	
-	idx = extractFromLine(buffer, idx, line);
-	sscanf(buffer, "%d", &c.created.date);
-	
-	idx = extractFromLine(buffer, idx, line);
-	sscanf(buffer, "%hd", &c.created.time);
-	
-	return c;
-	
-}
-
-int loadContacts(Contact contacts[], int nrOfContacts, int maxContacts)
+void loadContacts()
 {
 	char fileName[BUFFER_SIZE];
-	char buffer[BUFFER_SIZE];
 
 	printf("[Load Contacts] File? ");
 	getLine(fileName, BUFFER_SIZE);
@@ -504,24 +389,14 @@ int loadContacts(Contact contacts[], int nrOfContacts, int maxContacts)
 	if(fp == NULL)
 	{
 		printf("Error opening %s\n", fileName);
-		return 0;
+		return;
 	}
 	
-	int initialContacts = nrOfContacts;
-	
-	while(nrOfContacts < maxContacts && 		//space for a new contact
-		  fgets(buffer, BUFFER_SIZE, fp) != NULL && // read a line from the file
-		  buffer[0] != 0) //line is not empty
-	{
-		Contact c = readContactFromString(buffer);
-		contacts[nrOfContacts] = c;
-		nrOfContacts++;
-	}
+	int newContacts = readContactsFromFile(fp);
 	
 	fclose(fp);
 	
-	printf("Read <<%d>> contacts\n", nrOfContacts - initialContacts);
+	printf("Read <<%d>> contacts\n", newContacts);
 	
-	return nrOfContacts - initialContacts;
 	
 }

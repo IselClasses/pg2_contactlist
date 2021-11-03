@@ -1,0 +1,28 @@
+MYFLAGS=-g -Wall -c
+EXECUTABLENAME=contactsapp.out
+
+all: contacts.o prog.o consolehelpers.o datetime.o
+	gcc contacts.o prog.o consolehelpers.o datetime.o -o $(EXECUTABLENAME)
+
+datetime.o: datetime.c
+	gcc $(MYFLAGS) datetime.c
+	
+consolehelpers.o: consolehelpers.c
+	gcc $(MYFLAGS) consolehelpers.c
+	
+prog.o: prog.c
+	gcc $(MYFLAGS) prog.c
+	
+contacts.o: contacts.c
+	gcc $(MYFLAGS) contacts.c
+
+run: all
+	$(EXECUTABLENAME)
+	
+debug: all	
+	insight $(EXECUTABLENAME)
+
+clean:
+	-rm *.o
+	-rm *.out
+

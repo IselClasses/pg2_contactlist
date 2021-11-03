@@ -1,5 +1,5 @@
-
-
+#ifndef MY_DATETIME
+#define MY_DATETIME
 typedef struct m_datetime
 {
 	unsigned int date;
@@ -18,3 +18,4 @@ typedef struct m_datetime
 
 DateTime getCurrentDateTime();
 void datetimeToString(DateTime dt, char buffer[]);
+#endif
