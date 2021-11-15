@@ -40,13 +40,13 @@ DateTime getCurrentDateTime()
 	return dt;
 }
 
-void datetimeToString(DateTime dt, char buffer[])
+void datetimeToString(DateTime* dt, char buffer[])
 {
-	int year = (dt.date >> DATETIME_YEAR_POSITION_BIT) & DATETIME_PARCEL_MASK;
-	int month = (dt.date >> DATETIME_MONTH_POSITION_BIT) & DATETIME_PARCEL_MASK;
-	int day =(dt.date >> DATETIME_DAY_POSITION_BIT) & DATETIME_PARCEL_MASK;
-	int hour = (dt.time >> DATETIME_HOUR_POSITION_BIT) & DATETIME_PARCEL_MASK;
-	int minutes = (dt.time >> DATETIME_MINUTE_POSITION_BIT) & DATETIME_PARCEL_MASK;
+	int year = (dt->date >> DATETIME_YEAR_POSITION_BIT) & DATETIME_PARCEL_MASK;
+	int month = (dt->date >> DATETIME_MONTH_POSITION_BIT) & DATETIME_PARCEL_MASK;
+	int day =(dt->date >> DATETIME_DAY_POSITION_BIT) & DATETIME_PARCEL_MASK;
+	int hour = (dt->time >> DATETIME_HOUR_POSITION_BIT) & DATETIME_PARCEL_MASK;
+	int minutes = (dt->time >> DATETIME_MINUTE_POSITION_BIT) & DATETIME_PARCEL_MASK;
 	
 	sprintf(buffer, "%02d/%02d/%02d - %02d:%02d",day,month,year,hour,minutes);
 }

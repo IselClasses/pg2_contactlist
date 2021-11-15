@@ -18,7 +18,7 @@
 
 Contact readContact();
 void printAllContacts(bool showId);
-void printContact(Contact c);
+void printContact(Contact* c);
 void showFindMenu();
 void fillContactsWithMockData();
 bool deleteContact();
@@ -32,7 +32,7 @@ void testdatetime()
 {
 	char buffer[1234];
 	DateTime dt = getCurrentDateTime();
-	datetimeToString(dt,buffer);
+	datetimeToString(&dt,buffer);
 	
 	printf("%s\n", buffer);
 	
@@ -75,7 +75,7 @@ int main()
 				}
 				
 				Contact c = readContact();
-				if(addContact(c))
+				if(addContact(&c))
 					printf("Contact added\n");
 				else
 					printf("Failed to add contact\n");
@@ -168,11 +168,11 @@ void printAllContacts(bool showId)
 	printf("------------------------------------------------------\n");
 }
 
-void printContact(Contact c)
+void printContact(Contact* c)
 {
 	char buffer[BUFFER_SIZE];
-	datetimeToString(c.created, buffer);
-	printf("Name: %s\t\tEmail: %s\t\tPhone:%d\t\tCreated: %s\n", c.name, c.email, c.phone, buffer);
+	datetimeToString(&c->created, buffer);
+	printf("Name: %s\t\tEmail: %s\t\tPhone:%d\t\tCreated: %s\n", c->name, c->email, c->phone, buffer);
 	//printf("Name: %s\t\tEmail: %s\t\tPhone:%d\t\tCreated: %d\n", c.name, c.email, c.phone, c.created.date);
 
 }
@@ -204,8 +204,8 @@ void showFindMenu()
 	
 				for(int i = 0; i < contactSize; ++i)
 				{
-					Contact contact = getContactAt(i);
-					if(strcmp(contact.name,buffer) == 0)
+					Contact* contact = getContactAt(i);
+					if(strcmp(contact->name,buffer) == 0)
 					{
 						printContact(contact);
 						return;
@@ -220,8 +220,8 @@ void showFindMenu()
 				
 				for(int i = 0; i < contactSize; ++i)
 				{
-					Contact contact = getContactAt(i);
-					if(strcmp(contact.email,buffer) == 0)
+					Contact* contact = getContactAt(i);
+					if(strcmp(contact->email,buffer) == 0)
 					{
 						printContact(contact);
 						return;
@@ -238,8 +238,8 @@ void showFindMenu()
 				
 				for(int i = 0; i < contactSize; ++i)
 				{
-					Contact contact = getContactAt(i);
-					if(phone == contact.phone)
+					Contact* contact = getContactAt(i);
+					if(phone == contact->phone)
 					{
 						printContact(contact);
 						return;
@@ -294,7 +294,7 @@ void fillContactsWithMockData()
 		
 		c.created = getCurrentDateTime();
 		
-		if(addContact(c) == false)
+		if(addContact(&c) == false)
 			return;
 	}
 	

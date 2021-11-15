@@ -17,5 +17,5 @@ typedef struct m_datetime
 #define DATETIME_HOUR_POSITION_BIT (DATETIME_MINUTE_POSITION_BIT + DATETIME_PARCEL_SIZE_BITS)
 
 DateTime getCurrentDateTime();
-void datetimeToString(DateTime dt, char buffer[]);
+void datetimeToString(DateTime* dt, char buffer[]);
 #endif

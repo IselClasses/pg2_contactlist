@@ -17,8 +17,8 @@ typedef struct m_contact
 }Contact;
 
 bool canAddContact();
-bool addContact(Contact c);
-Contact getContactAt(int idx);
+bool addContact(Contact* c);
+Contact* getContactAt(int idx);
 int getContactsCount();
 bool deleteContactAtIdx(int idx);
 bool deleteContactAtIdxCascade(int idx);

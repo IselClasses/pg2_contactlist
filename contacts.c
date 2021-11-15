@@ -17,24 +17,23 @@ bool canAddContact()
 {
 	return nrOfContacts < CONTACT_MAX_SIZE;	
 }
-bool addContact(Contact c)
+bool addContact(Contact* c)
 {
 	if(canAddContact() == false)
 		return false;
 		
-	contacts[nrOfContacts] = c;
+	contacts[nrOfContacts] = *c;
 	nrOfContacts += 1;
 	return true;
 }
 
 
-Contact getContactAt(int idx)
+Contact* getContactAt(int idx)
 {
-	Contact dummy;
 	if(validIndex(idx) == false)
-		return dummy;
+		return NULL;
 		
-	return contacts[idx];
+	return contacts + idx;
 }
 
 int getContactsCount()
