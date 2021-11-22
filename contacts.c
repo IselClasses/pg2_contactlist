@@ -155,3 +155,15 @@ int readContactsFromFile(FILE* fp)
 	
 	return nrOfContacts - initialContacts;
 }
+
+
+Contact* findContact(void* key, bool (*pred)(Contact* c, void* key))
+{
+	for(int i = 0; i < nrOfContacts; ++i)
+	{
+		if(pred(&contacts[i], key))
+			return contacts + i;
+	}
+	
+	return NULL;
+}

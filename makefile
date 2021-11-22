@@ -1,4 +1,5 @@
 MYFLAGS=-g -Wall -c
+CFLAGS=-g -Wall -c
 EXECUTABLENAME=contactsapp.out
 LIBNAME=libcontacts.a
 LIBMODULES=contacts.o datetime.o
@@ -6,10 +7,11 @@ MODULES=prog.o consolehelpers.o $(LIBNAME)
 
 all: $(MODULES)
 	gcc $(MODULES) -o $(EXECUTABLENAME) 
-	
+
 *.o: *.c
 	gcc $(MYFLAGS) *.c
-	
+force:
+
 libcontacts.a: removeLib $(LIBMODULES)
 	ar -vq $(LIBNAME) $(LIBMODULES)
 

@@ -24,5 +24,6 @@ bool deleteContactAtIdx(int idx);
 bool deleteContactAtIdxCascade(int idx);
 bool writeContactsToFile(FILE* fp);
 int readContactsFromFile(FILE* fp);
+Contact* findContact(void* key, bool(* pred)(Contact* c, void* key));
 
 #endif

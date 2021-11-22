@@ -168,6 +168,8 @@ void printAllContacts(bool showId)
 	printf("------------------------------------------------------\n");
 }
 
+
+
 void printContact(Contact* c)
 {
 	char buffer[BUFFER_SIZE];
@@ -177,6 +179,41 @@ void printContact(Contact* c)
 
 }
 
+
+void searchContact(void* key, bool (*pred)(Contact*, void*))
+{
+	Contact* contact = findContact(key, pred);
+	
+	if(contact != NULL)
+	{
+		printContact(contact);
+		printf("\n\n");
+	}
+	else
+		printf("Contact doesn't exist\n\n");		
+}
+
+static bool findByPhonePred(Contact * c, void * key)
+{
+	int * p = key;
+	return c->phone == *p;
+}
+static bool findByEmailPred(Contact * c, void * key)
+{
+	return strcmp(c->email, (char*)key) == 0;
+}
+static bool findByNamePred(Contact * c, void * key)
+{
+	return strcmp(c->name, (char*)key) == 0;
+}
+static bool findByEmailOrNamePred(Contact * c, void * key)
+{
+	return findByEmailPred(c,key) || findByNamePred(c,key);
+}
+
+
+				
+
 void showFindMenu()
 {
 	char buffer[BUFFER_SIZE];
@@ -185,14 +222,13 @@ void showFindMenu()
 		printf("----- n - find by name\n");
 		printf("----- e - find by email\n");
 		printf("----- p - find by phone\n");
+		printf("----- w - find by name or email\n");
 		printf("----- i - find by index\n");
 		printf("----- q - go back to prev menu\n");
 		
 		printf("----- > ");
 		char option = getMenuOption();
 		
-		
-		int contactSize = getContactsCount();
 		
 		switch(option)
 		{
@@ -201,7 +237,7 @@ void showFindMenu()
 				printf("----- [Name] ? ");
 				getLine(buffer, BUFFER_SIZE);
 				
-	
+				/*
 				for(int i = 0; i < contactSize; ++i)
 				{
 					Contact* contact = getContactAt(i);
@@ -211,24 +247,21 @@ void showFindMenu()
 						return;
 					}
 				}
+				*/
+				searchContact(buffer, findByNamePred);
 				
-				printf("Contact doesn't exist\n\n");
 				return;
 			case 'e':
 				printf("----- [Email] ? ");
 				getLine(buffer, BUFFER_SIZE);
 				
-				for(int i = 0; i < contactSize; ++i)
-				{
-					Contact* contact = getContactAt(i);
-					if(strcmp(contact->email,buffer) == 0)
-					{
-						printContact(contact);
-						return;
-					}
-				}
+				searchContact(buffer, findByEmailPred);
+				return;
+			case 'w':
+				printf("----- [Email or Name] ? ");
+				getLine(buffer, BUFFER_SIZE);
 				
-				printf("Contact doesn't exist\n\n");
+				searchContact(buffer, findByEmailOrNamePred);
 				return;
 			case 'p':
 				
@@ -236,17 +269,8 @@ void showFindMenu()
 				
 				int phone = getIntFromConsole();
 				
-				for(int i = 0; i < contactSize; ++i)
-				{
-					Contact* contact = getContactAt(i);
-					if(phone == contact->phone)
-					{
-						printContact(contact);
-						return;
-					}
-				}
+				searchContact(&phone, findByPhonePred);
 				
-				printf("Contact doesn't exist\n\n");
 				return;
 			case 'i':
 			
